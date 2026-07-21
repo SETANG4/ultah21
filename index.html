@@ -583,15 +583,15 @@
     <!-- LOCK SCREEN -->
     <div class="lock-screen" id="lockScreen">
         <div class="glass-box">
-            <div class="time" id="lockTime">00:00</div>
-            <div class="date" id="lockDate">Selasa, 21 Juli 2026</div>
+            <div class="time" id="lockTime">--:--</div>
+            <div class="date" id="lockDate">--</div>
             <div class="countdown-box">
                 <div class="countdown-label">⏳ MENUJU 22 JULI 2026</div>
                 <div class="countdown-numbers">
-                    <div class="countdown-item"><span class="num" id="cdDays">00</span><span class="label">HARI</span></div>
-                    <div class="countdown-item"><span class="num" id="cdHours">00</span><span class="label">JAM</span></div>
-                    <div class="countdown-item"><span class="num" id="cdMinutes">00</span><span class="label">MENIT</span></div>
-                    <div class="countdown-item"><span class="num" id="cdSeconds">00</span><span class="label">DETIK</span></div>
+                    <div class="countdown-item"><span class="num" id="cdDays">--</span><span class="label">HARI</span></div>
+                    <div class="countdown-item"><span class="num" id="cdHours">--</span><span class="label">JAM</span></div>
+                    <div class="countdown-item"><span class="num" id="cdMinutes">--</span><span class="label">MENIT</span></div>
+                    <div class="countdown-item"><span class="num" id="cdSeconds">--</span><span class="label">DETIK</span></div>
                 </div>
             </div>
             <div class="lock-status" id="lockStatus">🔒 Belum waktunya... tunggu 22 Juli 2026</div>
@@ -645,6 +645,7 @@
             if (token === SECRET_TOKEN) {
                 isAuthenticated = true;
                 authGate.classList.add('hidden');
+                // Panggil init setelah auth berhasil
                 initLockScreen();
                 return true;
             } else {
@@ -665,15 +666,18 @@
             if (e.key === 'Enter') authSubmit.click();
         });
 
+        // Cek token dari URL
         const urlToken = getTokenFromURL();
         if (urlToken) {
             authenticate(urlToken);
         } else {
             authGate.classList.remove('hidden');
+            // Tapi kita tetap jalankan lock screen dengan placeholder, nanti akan diupdate setelah auth
+            // Tapi kita panggil initLockScreen nanti setelah auth
         }
 
         // ============================================================
-        //  LOCK SCREEN
+        //  LOCK SCREEN (dipanggil setelah auth)
         // ============================================================
         const lockScreen = document.getElementById('lockScreen');
         const lockTime = document.getElementById('lockTime');
@@ -690,40 +694,48 @@
         const toast = document.getElementById('toast');
         const confettiContainer = document.getElementById('confettiContainer');
 
-        const targetDate = new Date(2026, 6, 22);
+        const targetDate = new Date(2026, 6, 22); // 22 Juli 2026
         let isUnlocked = false;
         let isDragging = false;
         let startX = 0;
 
+        // Fungsi update jam dan countdown
         function updateClock() {
             const now = new Date();
+
+            // Jam
             const h = String(now.getHours()).padStart(2, '0');
             const m = String(now.getMinutes()).padStart(2, '0');
             lockTime.textContent = h + ':' + m;
 
-            const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-            const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+            // Tanggal
+            const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
             const dayName = days[now.getDay()];
             const dateNum = now.getDate();
             const monthName = months[now.getMonth()];
             const year = now.getFullYear();
             lockDate.textContent = `${dayName}, ${dateNum} ${monthName} ${year}`;
 
+            // Countdown
             const diff = targetDate - now;
             if (diff > 0) {
-                const daysLeft = Math.floor(diff / (1000*60*60*24));
-                const hoursLeft = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
-                const minutesLeft = Math.floor((diff % (1000*60*60)) / (1000*60));
-                const secondsLeft = Math.floor((diff % (1000*60)) / 1000);
-                cdDays.textContent = String(daysLeft).padStart(2,'0');
-                cdHours.textContent = String(hoursLeft).padStart(2,'0');
-                cdMinutes.textContent = String(minutesLeft).padStart(2,'0');
-                cdSeconds.textContent = String(secondsLeft).padStart(2,'0');
+                const daysLeft = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hoursLeft = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutesLeft = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const secondsLeft = Math.floor((diff % (1000 * 60)) / 1000);
+                cdDays.textContent = String(daysLeft).padStart(2, '0');
+                cdHours.textContent = String(hoursLeft).padStart(2, '0');
+                cdMinutes.textContent = String(minutesLeft).padStart(2, '0');
+                cdSeconds.textContent = String(secondsLeft).padStart(2, '0');
             } else {
-                cdDays.textContent = '00'; cdHours.textContent = '00';
-                cdMinutes.textContent = '00'; cdSeconds.textContent = '00';
+                cdDays.textContent = '00';
+                cdHours.textContent = '00';
+                cdMinutes.textContent = '00';
+                cdSeconds.textContent = '00';
             }
 
+            // Update status lock (aktif/tidak)
             const isTargetDay = now.getFullYear() === 2026 && now.getMonth() === 6 && now.getDate() >= 22;
             updateLockState(isTargetDay);
         }
@@ -767,6 +779,9 @@
             }
         }
 
+        // ============================================================
+        //  SLIDER EVENTS
+        // ============================================================
         unlockSlider.addEventListener('mousedown', function(e) {
             if (!this.classList.contains('active') || isUnlocked) return;
             isDragging = true;
@@ -774,6 +789,7 @@
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
         });
+
         function onMouseMove(e) {
             if (!isDragging || isUnlocked) return;
             const delta = e.clientX - startX;
@@ -790,6 +806,7 @@
                 document.removeEventListener('mouseup', onMouseUp);
             }
         }
+
         function onMouseUp() {
             if (!isUnlocked && isDragging) {
                 sliderThumb.style.left = '4px';
@@ -798,12 +815,14 @@
                 document.removeEventListener('mouseup', onMouseUp);
             }
         }
+
         unlockSlider.addEventListener('touchstart', function(e) {
             if (!this.classList.contains('active') || isUnlocked) return;
             const touch = e.touches[0];
             isDragging = true;
             startX = touch.clientX;
         });
+
         unlockSlider.addEventListener('touchmove', function(e) {
             if (!isDragging || isUnlocked) return;
             const touch = e.touches[0];
@@ -819,12 +838,14 @@
                 isDragging = false;
             }
         });
+
         unlockSlider.addEventListener('touchend', function() {
             if (!isUnlocked && isDragging) {
                 sliderThumb.style.left = '4px';
                 isDragging = false;
             }
         });
+
         unlockSlider.addEventListener('click', function(e) {
             if (!this.classList.contains('active') || isUnlocked) return;
             const rect = this.getBoundingClientRect();
@@ -832,17 +853,26 @@
             if (x > rect.width - 80) handleUnlock();
         });
 
+        // ============================================================
+        //  TOAST
+        // ============================================================
         let toastTimer = null;
+
         function showToast(text, duration = 2000) {
             toast.textContent = text;
             toast.classList.add('show');
             clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => { toast.classList.remove('show'); }, duration);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
         }
 
+        // ============================================================
+        //  CONFETTI
+        // ============================================================
         function fireConfetti(count = 120) {
             const container = confettiContainer;
-            const colors = ['#6bc9ff','#f7b731','#d46a9e','#7a5ac0','#4a8ecf','#ff7e67','#5aa3e0','#ffb3a6'];
+            const colors = ['#6bc9ff', '#f7b731', '#d46a9e', '#7a5ac0', '#4a8ecf', '#ff7e67', '#5aa3e0', '#ffb3a6'];
             const w = window.innerWidth;
             for (let i = 0; i < count; i++) {
                 const piece = document.createElement('div');
@@ -860,6 +890,9 @@
             }
         }
 
+        // ============================================================
+        //  TOMBOL INTERAKSI
+        // ============================================================
         document.getElementById('btnConfetti').addEventListener('click', function() {
             fireConfetti(150);
             showToast('🎉 Rayakan! Kamu luar biasa! 💫', 2000);
@@ -887,6 +920,9 @@
             }
         });
 
+        // ============================================================
+        //  RIPPLE EFFECT (untuk glass card)
+        // ============================================================
         glassCard.addEventListener('click', function(e) {
             if (e.target.closest('.action-row') || e.target.closest('.header')) return;
             const rect = this.getBoundingClientRect();
@@ -897,28 +933,53 @@
             const y = e.clientY - rect.top;
             ripple.style.width = size + 'px';
             ripple.style.height = size + 'px';
-            ripple.style.left = (x - size/2) + 'px';
-            ripple.style.top = (y - size/2) + 'px';
+            ripple.style.left = (x - size / 2) + 'px';
+            ripple.style.top = (y - size / 2) + 'px';
             ripple.style.background = `radial-gradient(circle, rgba(255,255,255,${0.03 + Math.random()*0.08}) 0%, transparent 70%)`;
             this.appendChild(ripple);
             setTimeout(() => ripple.remove(), 1000);
         });
 
+        // ============================================================
+        //  INIT LOCK SCREEN (dipanggil setelah auth)
+        // ============================================================
         function initLockScreen() {
+            // Tampilkan lock screen
+            lockScreen.classList.remove('hidden');
+            // Hapus auth gate
+            authGate.classList.add('hidden');
+            // Update jam & countdown pertama kali
             updateClock();
+            // Jalankan update setiap detik
             setInterval(updateClock, 1000);
+            // Cek status setiap 5 detik (untuk update status lock)
             setInterval(() => {
                 const now = new Date();
                 const isTargetDay = now.getFullYear() === 2026 && now.getMonth() === 6 && now.getDate() >= 22;
                 updateLockState(isTargetDay);
             }, 5000);
-            lockScreen.classList.remove('hidden');
-            authGate.classList.add('hidden');
+            console.log('✅ Lock screen initialized, waktu berjalan!');
         }
 
+        // ============================================================
+        //  JALANKAN INIT JIKA SUDAH AUTHENTICATED DARI URL
+        // ============================================================
+        // Jika sudah authenticated dari URL, init sudah dipanggil di authenticate()
+        // Tapi jika belum, kita cek lagi di sini
         if (isAuthenticated) {
-            initLockScreen();
+            // Pastikan init sudah dipanggil (tapi kita panggil sekali lagi untuk amannya)
+            // Tapi jangan double init, karena authenticate() sudah memanggil initLockScreen()
+            // Kita hanya perlu memastikan tidak ada error
+            console.log('✅ Already authenticated from URL.');
+        } else {
+            // Belum auth, authGate masih terlihat, tidak perlu init dulu
+            console.log('⏳ Menunggu autentikasi...');
         }
+
+        // Fallback: jika ada error dan auth gagal, tetap tampilkan auth gate
+        // Sudah diatur di atas.
+
+        console.log('🚀 Website siap!');
     </script>
 </body>
 </html>
